@@ -1,5 +1,5 @@
 /*
-    Copyright 2010 Andrey Zholos
+    Copyright 2010, 2011 Andrey Zholos
 
     This file is part of kuc, a vector programming language.
 
@@ -77,6 +77,12 @@ static void skip_space(struct parse_state* state) {
 }
 
 
+// fun fact: Linux doesn't have digittoint()
+static int int_digit(char c) {
+    assert(c >= '0' && c <= '9');
+    return c - '0';
+}
+
 #define LEX_INTEGER(vtype)                                                    \
 static vtype##_type lex_##vtype(struct parse_state* state) {                  \
     vtype##_type n = 0;                                                       \
@@ -91,7 +97,7 @@ static vtype##_type lex_##vtype(struct parse_state* state) {                  \
         state->s += 2;                                                        \
     } else                                                                    \
         for (; AVAIL(1) && isdigit(*state->s); state->s++) {                  \
-            int digit = digittoint(*state->s);                                \
+            int digit = int_digit(*state->s);                                 \
             if (negative ? n < (vtype##_min + digit) / 10                     \
                          : n > (vtype##_max - digit) / 10)                    \
                 parse_error(state, error_number);                             \
@@ -120,12 +126,12 @@ static float_type lex_float(struct parse_state* state) {
             state->s++;
         float_type x = 0;
         while (AVAIL(1) && isdigit(*state->s))
-            x = x * 10 + digittoint(*state->s++);
+            x = x * 10 + int_digit(*state->s++);
         if (AVAIL(1) && NEXT('.')) {
             state->s++;
             float_type f = 0, p = 1;
             for (; AVAIL(1) && isdigit(*state->s); p *= 10)
-                f = f * 10 + digittoint(*state->s++);
+                f = f * 10 + int_digit(*state->s++);
             x += f / p;
         }
         if (AVAIL(1) && NEXT('e')) {
@@ -135,7 +141,7 @@ static float_type lex_float(struct parse_state* state) {
                 state->s++;
             float_type e = 0;
             while (AVAIL(1) && isdigit(*state->s))
-                e = e * 10 + digittoint(*state->s++);
+                e = e * 10 + int_digit(*state->s++);
             // note: assuming that float_type is double
             x *= pow(10, exp_negative ? -e : e);
         }
@@ -155,12 +161,9 @@ static bool lookahead_number(const char* s, const char* end,
     return 0;
 }
 
-
 static int bool_digit(char c) {
-    int d = digittoint(c);
-    return d <= 1 ? d : d == 8 ? -1 : 2;
+    return c == '0' ? 0 : c == '1' ? 1 : c == '8' ? -1 : 2;
 }
-
 
 static Value lex_numbers(struct parse_state* state) {
     bool boolean = 1, integer = 1, floating = 1;
@@ -293,10 +296,23 @@ static Value lex_numbers(struct parse_state* state) {
 }
 
 
-static byte_type byte_digits(const char s[2]) {
-    return digittoint(s[0]) * 16 + digittoint(s[1]);
+static int hex_digit(char c) {
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    switch (c) {
+    case 'a': case 'A': return 10;
+    case 'b': case 'B': return 11;
+    case 'c': case 'C': return 12;
+    case 'd': case 'D': return 13;
+    case 'e': case 'E': return 14;
+    case 'f': case 'F': return 15;
+    }
+    return 0; // can be called on something else too
 }
 
+static byte_type byte_digits(const char s[2]) {
+    return hex_digit(s[0]) * 16 + hex_digit(s[1]);
+}
 
 static Value lex_bytes(struct parse_state* state) {
     assert(AVAIL(1) && NEXT('0') && AVAIL(2) && AFTER('x'));
@@ -306,7 +322,7 @@ static Value lex_bytes(struct parse_state* state) {
         parse_error(state, error_number);
 
     if ((state->s - base) % 2)
-        base--; // digittoint will return 0 for 'x' from prefix
+        base--; // hex_digit will return 0 for 'x' from prefix
     index n = (state->s - base) / 2;
     if (n == 1)
         return create_byte(byte_digits(base));
@@ -376,9 +392,8 @@ static Value lex_names(struct parse_state* state) {
 
 
 static bool is_octal_digit(char c) {
-    return isdigit(c) && digittoint(c) < 8;
+    return isdigit(c) && c < '8';
 }
-
 
 static Value lex_string(struct parse_state* state) {
     assert(AVAIL(1) && NEXT('"'));
@@ -401,12 +416,12 @@ static Value lex_string(struct parse_state* state) {
                         c[i] = '\n';
                     state->s++;
                 } else if (AVAIL(1) && is_octal_digit(*state->s)) {
-                    int o = digittoint(*state->s++);
+                    int o = int_digit(*state->s++);
                     if (AVAIL(1) && is_octal_digit(*state->s)) {
-                        o = o * 8 + digittoint(*state->s++);
+                        o = o * 8 + int_digit(*state->s++);
                         if (o * 8 < 256 &&
                                 AVAIL(1) && is_octal_digit(*state->s))
-                            o = o * 8 + digittoint(*state->s++);
+                            o = o * 8 + int_digit(*state->s++);
                     }
                     if (c)
                         c[i] = (unsigned char)o;

@@ -1,5 +1,5 @@
 /*
-    Copyright 2010 Andrey Zholos
+    Copyright 2010, 2011 Andrey Zholos
 
     This file is part of kuc, a vector programming language.
 
@@ -169,15 +169,19 @@ Value mmap_file(Value x) {
         goto error_length_close;
     size_t total = front + st.st_size;
 
+#ifndef MAP_NOCORE
+#define MAP_NOCORE 0
+#endif
+
     // first, map and large enough segment of memory
-    int flags = MAP_NOCORE;
-    char* whole = mmap(0, total, PROT_NONE, flags | MAP_ANON, -1, 0);
+    char* whole = mmap(NULL, total, PROT_NONE,
+                       MAP_NOCORE | MAP_ANON | MAP_PRIVATE, -1, 0);
     if (whole == MAP_FAILED)
         goto error_file_close;
 
     // then, map the file over it
     void* file = mmap(whole + front, total - front, PROT_READ,
-                      flags | MAP_FIXED, fd, 0);
+                      MAP_FIXED | MAP_NOCORE | MAP_PRIVATE, fd, 0);
     if (file == MAP_FAILED)
         goto error_file_unmap;
     if (file != whole + front)
@@ -185,7 +189,7 @@ Value mmap_file(Value x) {
 
     // and put the header in front
     char* header = mmap(whole, front, PROT_READ | PROT_WRITE,
-                        flags | MAP_FIXED | MAP_ANON, -1, 0);
+                        MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
     if (header == MAP_FAILED)
         goto error_file_unmap;
     if (header != whole)

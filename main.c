@@ -1,5 +1,5 @@
 /*
-    Copyright 2010 Andrey Zholos
+    Copyright 2010, 2011 Andrey Zholos
 
     This file is part of kuc, a vector programming language.
 
@@ -127,7 +127,7 @@ void eval_interactive() {
 
 void help(bool full) {
     if (full)
-        puts("kuc 0.0-20101213");
+        puts("kuc 0.0-20110219");
     puts("Usage: kuc [-i | -c command | [-f] file]\n");
 }
 

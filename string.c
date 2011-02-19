@@ -1,5 +1,5 @@
 /*
-    Copyright 2010 Andrey Zholos
+    Copyright 2010, 2011 Andrey Zholos
 
     This file is part of kuc, a vector programming language.
 
@@ -327,7 +327,7 @@ STRING_VECTOR(float, STRING_FLOAT_LEN, STRING_FLOAT_RENDER, 0, ' ', 0)
 
 
 static bool is_octal_digit(char c) {
-    return isdigit(c) && digittoint(c) < 8;
+    return isdigit(c) && c < '8';
 }
 
 #define STRING_CHAR_LEN                              \
@@ -576,7 +576,7 @@ static MValue show_prepare(Value x, index width, index height) {
         }
     }
 
-    bool incomplete = rows < x->count;
+    bool incomplete = rows < (map ? x->map.value : x)->count;
     index k = 0;
     for (index i = 0; i < rows; i++)
         k += row[i]->count;

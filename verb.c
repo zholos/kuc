@@ -1,5 +1,5 @@
 /*
-    Copyright 2010 Andrey Zholos
+    Copyright 2010, 2011 Andrey Zholos
 
     This file is part of kuc, a vector programming language.
 
@@ -597,38 +597,70 @@ Value group(Value x) {
 }
 
 
-struct compare_info {
+struct sort_info {
     const char* items;
     size_t size;
     int (*compare)(const char*, const char*);
+    int sign;
 };
 
-#define ORDER(name, sign)                                               \
-static int compare_##name(void* info_void,                              \
-                          const void* i_void, const void* j_void) {     \
-    const struct compare_info* info = info_void;                        \
-    index i = *(index*)i_void, j = *(index*)j_void;                     \
-    int c = info->compare(info->items + info->size * i,                 \
-                          info->items + info->size * j);                \
-    return c ? sign c : i - j;                                          \
-}                                                                       \
-Value order_##name(Value x) {                                           \
-    if (!x->vector)                                                     \
-        if (x->type == type_map)                                        \
-            return items(x->map.key, order_##name(x->map.value));       \
-        else                                                            \
-            error(error_type);                                          \
-    struct compare_info info =                                          \
-        { x->items, types[x->type].size, types_conv[x->type].compare }; \
-    MValue r = create_items(type_index, x->count);                      \
-    for (index i = 0; i < x->count; i++)                                \
-        r->indexes[i] = i;                                              \
-    qsort_r(r->items, x->count, sizeof(index), &info, compare_##name);  \
-    return r;                                                           \
+static bool sort_less(const struct sort_info* info, index i, index j) {
+    int c = info->compare(info->items + info->size * i,
+                          info->items + info->size * j);
+    return c ? info->sign * c < 0 : i < j;
 }
 
-ORDER(asc,)
-ORDER(desc, -)
+// float an element v from position i up to its correct position
+static void heap_float(const struct sort_info* info,
+                      index* a, index i, index v) {
+    index j;
+    for (; i; i = j) {
+        j = (i-1)/2;
+        if (!sort_less(info, a[j], v)) // a[j] > v
+            break;
+        a[i] = a[j];
+    }
+    a[i] = v;
+}
+
+// sink a hole from position 0 down to its correct position,
+// returning the position
+static index heap_sink_hole(const struct sort_info* info, index* a, index n) {
+    index i, j;
+    for (i = 0; i < n/2; i = j) {
+        j = i*2+1;
+        if (j+1 < n && sort_less(info, a[j], a[j+1])) // a[j] < a[j+1]
+            ++j;
+        a[i] = a[j];
+    }
+    return i;
+}
+
+static void heap_sort(struct sort_info* info, index* a, index n) {
+    for (index i = 0; i < n; i++)
+        heap_float(info, a, i, i);
+    while (--n > 0) {
+        index v = a[n]; a[n] = a[0];
+        heap_float(info, a, heap_sink_hole(info, a, n), v);
+    }
+}
+
+static Value order(Value x, int sign) {
+    if (!x->vector)
+        if (x->type == type_map)
+            return items(x->map.key, order(x->map.value, sign));
+        else
+            error(error_type);
+    struct sort_info info =
+        { x->items, types[x->type].size, types_conv[x->type].compare, sign };
+
+    MValue r = create_items(type_index, x->count);
+    heap_sort(&info, r->indexes, x->count);
+    return r;
+}
+
+Value order_asc( Value x) { return order(x,  1); }
+Value order_desc(Value x) { return order(x, -1); }
 
 
 Value unique(Value x) {

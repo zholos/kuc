@@ -12,14 +12,15 @@ TARGET  = kuc
 CC      = gcc
 CFLAGS  = -ggdb -O3 -march=native -std=gnu99 -fms-extensions \
           -I/usr/local/include \
-          -Werror -Wall -Wno-parentheses -Wno-attributes -Wpointer-arith
+          -Wall -Wno-parentheses -Wno-attributes -Wpointer-arith
 LDFLAGS = -L/usr/local/lib -lm -ledit -ltermcap
 
 $(TARGET): $(OBJECTS) Makefile
 	$(CC) -o $@ $(OBJECTS) $(LDFLAGS)
 
-$(OBJECTS): $*.c $(HEADERS) Makefile
-	$(CC) $(CONFIG) $(CFLAGS) -c $*.c
+$(OBJECTS): $(HEADERS) Makefile
+.c.o:
+	$(CC) $(CONFIG) $(CFLAGS) -c $<
 
 .PHONY: clean
 clean:

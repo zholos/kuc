@@ -1,5 +1,5 @@
 /*
-    Copyright 2010 Andrey Zholos
+    Copyright 2010, 2011 Andrey Zholos
 
     This file is part of kuc, a vector programming language.
 
@@ -68,7 +68,6 @@ void memory_error(size_t size) {
 /* Non-atomic objects can become locked, after which they no longer need to be
    scanned at every collection, if:
    - they are not listed as held on the mvalue stack;
-   - they are not the key or value of a map held on the mvalue stack;
    - they are not closures (modifyable);
    - they do not reference any persistent objects;
    - they do not reference any objects which are not locked (atomic objects are
@@ -354,8 +353,8 @@ static Block alloc_block(size_t size, int alloc_type, bool small) {
     if (!fit) {
         size_t alloc = 1 << 24;
         for (; alloc < size; alloc *= 2);
-        void* memory = mmap(0, alloc, PROT_READ | PROT_WRITE,
-                            MAP_ANON | MAP_NOCORE, -1, 0);
+        void* memory = mmap(NULL, alloc, PROT_READ | PROT_WRITE,
+                            MAP_ANON | MAP_PRIVATE, -1, 0);
         if (memory == MAP_FAILED)
             memory_error(alloc);
 
@@ -443,9 +442,6 @@ static void prepare_small_block(BlockList* list,
                               small_size <= SMALL_STEP * 12 ? SMALL_LAST / 8 :
                                                               SMALL_LAST / 32;
 
-    // fixme: temporarily reduce size of all small requests
-    small_count /= 2;
-
     Block block = alloc_block(REDZONE_ADJUST(small_size) * small_count,
                               alloc_type, 1);
     small_count = block->size / REDZONE_ADJUST(small_size);
@@ -513,6 +509,11 @@ void* alloc(size_t size, int alloc_type) {
 
 static void free_block(Block block) {
     heap_size.size -= block->size;
+
+    // fun fact: Linux MADV_DONTNEED is destructive on anonymous mappings
+#if !defined(MADV_FREE) && defined(MADV_DONTNEED)
+#define      MADV_FREE             MADV_DONTNEED
+#endif
 
     if (block->size >= (1 << 20))
         madvise(block->base, block->size - block->size % pagesize, MADV_FREE);
@@ -821,15 +822,9 @@ CHECK_ALIGN(struct, code,   literals)
 
 
 static bool is_mvalue(const void* base) {
-    for (MValue** p = hold_mvalue_stack.cold; p != hold_mvalue_stack.hot; p++) {
+    for (MValue** p = hold_mvalue_stack.cold; p != hold_mvalue_stack.hot; p++)
         if (**p == base)
             return 1;
-
-        // fixme: all mvalues must be initialized during collection
-        if ((**p)->type == type_map && ((**p)->map.key == base ||
-                                        (**p)->map.value == base))
-            return 1;
-    }
     return 0;
 }
 
@@ -1042,7 +1037,7 @@ static void sweep_unpersist(struct sweep_state* state, const char* current,
             continue;
 
         Block block = find_block(*p);
-        assert(block && block->mark);
+        assert(block);
 
         if (block->mark == 9) {
             index object = SMALL_OBJECT(block, *p);
@@ -1119,8 +1114,6 @@ static void sweep(struct sweep_state* state, Block block) {
         sweep(state, block->block_left);
 
     if (block->mark == 9) {
-        index last_free = block->small_first_free;
-        small_index freed = 0;
         small_index locked     = SMALL_LAST + 5 + white,
                     unlocked   = SMALL_LAST + 3 + white,
                     unlockable = SMALL_LAST + 1 + white;
@@ -1134,9 +1127,13 @@ static void sweep(struct sweep_state* state, Block block) {
             if (block->small_map[object] == locked ||
                 block->small_map[object] == unlocked ||
                 block->small_map[object] == unlockable) {
-                block->small_map[object] = last_free;
-                last_free = object;
-                freed++;
+
+                // sweep_unpersist called above may free small objects in this
+                // block, so small_map and small_first_free must be consistent
+                // in each step of the loop
+                block->small_map[object] = block->small_first_free;
+                block->small_first_free = object;
+                block->small_used--;
 #ifndef NVALGRIND
                 VALGRIND_MEMPOOL_FREE(block->base,
                                       SMALL_ADDRESS(block, object));
@@ -1144,29 +1141,25 @@ static void sweep(struct sweep_state* state, Block block) {
             }
         }
 
-        if (freed) {
-            block->small_first_free = last_free;
-            block->small_used -= freed;
-            if (!block->small_used) {
-                int type = small_type(block->small_size);
-                for (BlockList* small = &small_list[block->atomic][type];;
-                                small = &(*small)->next)
-                    if ((*small)->block == block) {
-                        list_pop(small);
-                        goto found_small_item;
-                    }
-                assert(0);
+        if (!block->small_used) {
+            int type = small_type(block->small_size);
+            for (BlockList* small = &small_list[block->atomic][type];;
+                            small = &(*small)->next)
+                if ((*small)->block == block) {
+                    list_pop(small);
+                    goto found_small_item;
+                }
+            assert(0);
 
-            found_small_item:
-                free(block->small_map);
+        found_small_item:
+            free(block->small_map);
 #ifndef NVALGRIND
-                free(block->small_alloced);
-                VALGRIND_DESTROY_MEMPOOL(block->base);
-                VALGRIND_MAKE_MEM_UNDEFINED(block->base, block->size);
+            free(block->small_alloced);
+            VALGRIND_DESTROY_MEMPOOL(block->base);
+            VALGRIND_MAKE_MEM_UNDEFINED(block->base, block->size);
 #endif
-                free_block(block);
-                goto coalesce;
-            }
+            free_block(block);
+            goto coalesce;
         }
 
     } else if (block->mark) {
