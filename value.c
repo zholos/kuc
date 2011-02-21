@@ -1061,6 +1061,8 @@ static void* malloc_checked(size_t size) {
 
 
 static name find_name(const char* chars, size_t count) {
+    assert(!memchr(chars, 0, count));
+
     if (count > index_max)
         error(error_length);
 

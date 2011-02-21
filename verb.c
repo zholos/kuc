@@ -1000,7 +1000,8 @@ Value cast(Value x, Value y) {
         if (x->_name == name_name || is_null_name(x->_name)) {
             if (!y->vector || y->type != type_char)
                 error(error_type);
-            if (strnlen(y->chars, y->count) < y->count)
+            // fun fact: Darwin doesn't have strnlen()
+            if (memchr(y->chars, 0, y->count))
                 error(error_type);
             return create_name(y->chars, y->count);
         }

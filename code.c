@@ -78,7 +78,8 @@ CSBlock cs_find(size_t size) {
 
     size_t alloc = ((1 << 18) + (pagesize-1)) / pagesize * pagesize;
     for (; alloc < size; alloc *= 2);
-    void* memory = mmap(0, alloc, PROT_READ | PROT_WRITE, MAP_ANON, -1, 0);
+    void* memory = mmap(NULL, alloc, PROT_READ | PROT_WRITE,
+                        MAP_ANON | MAP_PRIVATE, -1, 0);
     if (memory == MAP_FAILED)
         memory_error(alloc);
 
