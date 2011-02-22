@@ -223,8 +223,9 @@ Value take(Value x, Value y) {
     check_length(count);
 
     size_t size = types[y->type].size;
-    MValue r = create_items(y->type, count);
+    MValue r;
     if (y->vector) {
+        r = create_items(y->type, count);
         if (n >= 0)
             for (index i = 0; i < count; i += y->count)
                 COPIES(r->items + size * i, y->items,
@@ -234,10 +235,15 @@ Value take(Value x, Value y) {
                 COPIES(r->items + size * MAX(0, i - y->count),
                        y->items + size * MAX(0, y->count - i),
                        size, MIN(y->count, i));
-    } else {
+    } else if (types[y->type].vectorable) {
+        r = create_items(y->type, count);
         short offset = types[y->type].offset;
         for (index i = 0; i < count; i++)
             COPY(r->items + size * i, y->item + offset, size);
+    } else {
+        r = create_items(type_variant, count);
+        for (index i = 0; i < count; i++)
+            r->mixed[i] = y;
     }
     return r;
 }

@@ -429,9 +429,10 @@ static instr_word cf_recurse_cond(struct cf_state* state,
     MValue assigned_c = copy(state->assigned);
     instr_word x = cf_recurse(state, tree->mixed[i+1], dest);
     if (x != INSTR_LAST)
-        if (dest == INSTR_LAST)
+        if (dest == INSTR_LAST) {
+            cf_free(state, x);
             cf_emit_2(state, 3*INSTR_PART + 0, x);
-        else if (x >= cf_temp_base(state) && x < INSTR_PART)
+        } else if (x >= cf_temp_base(state) && x < INSTR_PART)
             r = x;
         else {
             r = cf_temp(state);
@@ -449,20 +450,19 @@ static instr_word cf_recurse_cond(struct cf_state* state,
     MValue assigned_x = state->assigned;
     state->assigned = assigned_c;
     if (dest != INSTR_LAST && r != INSTR_LAST)
-        dest = x;
+        dest = r;
     // ideally we should tell both the fact that dest == INSTR_LAST and the
     // value of r to the function
     instr_word y =
         i + 3 < tree->count ? cf_recurse_cond(state, tree, dest, i + 2)
                             : cf_recurse(state, tree->mixed[i+2], dest);
-    if (y != INSTR_LAST) {
+    if (y != INSTR_LAST)
         if (r == INSTR_LAST)
             r = y;
-        else {
+        else if (y != r) {
             cf_free(state, y);
             cf_emit_set(state, r, y);
         }
-    }
     if (state->pass == 3 && target_x)
         state->instr[target_x] = state->ip;
     // todo: use union function
@@ -608,14 +608,14 @@ static instr_word cf_recurse_call(struct cf_state* state,
         Value var = tree->mixed[1];
         if (var->vector || var->type != type_name)
             error(error_type);
-        instr_word r = cf_name_read(state, var), g = 0;
         instr_word x = cf_recurse(state, tree->mixed[2], 0);
-        cf_free(state, x);
+        instr_word r = cf_name_read(state, var), g = 0;
         if (!r) {
             r = cf_dest(state, dest);
             g = cf_literal(state, var);
             cf_emit_3(state, INSTR_PART + verb_global_read, r, g);
         }
+        cf_free(state, x);
         cf_emit_4(state, tree->mixed[0]->verb, r, r, x);
         if (g)
             cf_emit_4(state, verb_global_write, r, g, r);
@@ -888,7 +888,7 @@ static Value eval_tree(Value tree) {
     bzero(frame, sizeof frame);
     frame[0] = func;
     frame[1] = (Value)&untyped_null;
-    Value r = run(frame); // VC: stack including function is accounted in run
+    Value r = run(frame); // c.: stack including function is accounted in run
     hold(r);
     collect();
     release(1);
