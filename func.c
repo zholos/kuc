@@ -522,11 +522,12 @@ static instr_word cf_recurse_call(struct cf_state* state,
                 var = var->mixed[0];
                 goto assign_var;
             }
-
-            instr_word r = cf_name_read(state, var->mixed[0]), g = 0;
-            instr_word x = cf_recurse(state, tree->mixed[2], 0);
             if (2 + (var->count-1) - 2 >= INSTR_PART/2)
                 error(error_args);
+
+            instr_word y = cf_recurse(state, tree->mixed[2],
+                                      dest == INSTR_LAST ? 0 : dest);
+            instr_word r = y;
             instr_word i[var->count-1];
             for (index j = var->count-1; j > 0; j--)
                 if (IS_NULL(var->mixed[j])) {
@@ -536,35 +537,47 @@ static instr_word cf_recurse_call(struct cf_state* state,
                     // will be handled by the special verb
                 } else
                     i[j-1] = cf_recurse(state, var->mixed[j], 0);
-            for (index j = 0; j < var->count-1; j++)
-                cf_free(state, i[j]);
-            cf_free(state, x);
 
-            if (!r) { // global
-                r = cf_dest(state, dest);
+            instr_word x = cf_name_read(state, var->mixed[0]), g = 0, w;
+            if (!x) { // global
+                x = cf_temp(state);
                 g = cf_literal(state, var->mixed[0]);
-                cf_emit_3(state, INSTR_PART + verb_global_read, r, g);
+                cf_emit_3(state, INSTR_PART + verb_global_read, x, g);
+                cf_free(state, x);
+                w = x;
+            } else { // local
+                w = cf_name_write(state, var->mixed[0], 1);
+                if (w == y) {
+                    r = cf_temp(state);
+                    cf_emit_set(state, r, y);
+                    cf_free(state, y);
+                }
             }
+
             // must insert this literal before pass 3
             instr_word verb = cf_literal(state,
                 (Value)&verbs[var->count == 2 ? verb_assign_item
                                               : verb_assign_element].literal);
+
+            for (index j = 0; j < var->count-1; j++)
+                cf_free(state, i[j]);
+
             if (state->pass == 3) {
-                // r : verb[r, x, i1, i2, ..., in]
+                // w : verb[x, y, i1, i2, ..., in]
                 // error_args condition above is guarding this clause
                 cf_emit_reserve(state, 5 + (var->count-1));
-                assert(2 + (var->count-1) < 32);
                 state->instr[state->ip++] =
                     2*INSTR_PART + (2 + (var->count-1) - 2);
-                state->instr[state->ip++] = r;
+                state->instr[state->ip++] = w;
                 state->instr[state->ip++] = verb;
-                state->instr[state->ip++] = r;
                 state->instr[state->ip++] = x;
+                state->instr[state->ip++] = y;
                 for (index j = 0; j < var->count-1; j++)
                     state->instr[state->ip++] = i[j];
             }
-            if (g)
-                cf_emit_4(state, verb_global_write, r, g, r);
+            if (g) // global
+                cf_emit_4(state, verb_global_write, w, g, w);
+
             return r;
         } else
             error(error_type);

@@ -426,7 +426,7 @@ Value call(Value f, index n, const Value* p) { // reaches c.
             hold_array(n, p);
             f = run(frame);
             release_array(1);
-            return call(f, n, p); // c. p.
+            return n ? call(f, n, p) : f; // c. p.
         } else
             return create_proj(f, n, p);
     case type_proj: {

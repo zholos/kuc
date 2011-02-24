@@ -603,6 +603,44 @@ Value group(Value x) {
 }
 
 
+#define HEAP(prefix, info_type)                                              \
+/* float an element v from position i up to its correct position */          \
+static void prefix##heap_float(info_type info, index* a, index i, index v) { \
+    index j;                                                                 \
+    for (; i; i = j) {                                                       \
+        j = (i-1)/2;                                                         \
+        if (!prefix##sort_less(info, a[j], v)) /* a[j] > v */                \
+            break;                                                           \
+        a[i] = a[j];                                                         \
+    }                                                                        \
+    a[i] = v;                                                                \
+}                                                                            \
+                                                                             \
+/* sink a hole from position 0 down to its correct position,                 \
+   returning the position */                                                 \
+static index prefix##heap_sink_hole(info_type info, index* a, index n) {     \
+    index i, j;                                                              \
+    for (i = 0; i < n/2; i = j) {                                            \
+        j = i*2+1;                                                           \
+        if (j+1 < n &&                                                       \
+            prefix##sort_less(info, a[j], a[j+1])) /* a[j] < a[j+1] */       \
+            ++j;                                                             \
+        a[i] = a[j];                                                         \
+    }                                                                        \
+    return i;                                                                \
+}                                                                            \
+                                                                             \
+static void prefix##heap_sort(info_type info, index* a, index n) {           \
+    for (index i = 0; i < n; i++)                                            \
+        prefix##heap_float(info, a, i, prefix##heap_element(info, i));       \
+    while (--n > 0) {                                                        \
+        index v = a[n]; a[n] = a[0];                                         \
+        prefix##heap_float(info, a, prefix##heap_sink_hole(info, a, n), v);  \
+    }                                                                        \
+}
+
+
+// indexes to general array
 struct sort_info {
     const char* items;
     size_t size;
@@ -616,40 +654,21 @@ static bool sort_less(const struct sort_info* info, index i, index j) {
     return c ? info->sign * c < 0 : i < j;
 }
 
-// float an element v from position i up to its correct position
-static void heap_float(const struct sort_info* info,
-                      index* a, index i, index v) {
-    index j;
-    for (; i; i = j) {
-        j = (i-1)/2;
-        if (!sort_less(info, a[j], v)) // a[j] > v
-            break;
-        a[i] = a[j];
-    }
-    a[i] = v;
+
+#define heap_element(info, i) (i)
+HEAP(, const struct sort_info*)
+
+// indexes to index array, ascending sort
+#ifndef NSHORTCUT
+static bool index_asc_sort_less(const index* info, index i, index j) {
+    int c = compare_int(info[i], info[j]);
+    return c ? c < 0 : i < j;
 }
 
-// sink a hole from position 0 down to its correct position,
-// returning the position
-static index heap_sink_hole(const struct sort_info* info, index* a, index n) {
-    index i, j;
-    for (i = 0; i < n/2; i = j) {
-        j = i*2+1;
-        if (j+1 < n && sort_less(info, a[j], a[j+1])) // a[j] < a[j+1]
-            ++j;
-        a[i] = a[j];
-    }
-    return i;
-}
+#define index_asc_heap_element(info, i) (i)
+HEAP(index_asc_, const index*)
+#endif
 
-static void heap_sort(struct sort_info* info, index* a, index n) {
-    for (index i = 0; i < n; i++)
-        heap_float(info, a, i, i);
-    while (--n > 0) {
-        index v = a[n]; a[n] = a[0];
-        heap_float(info, a, heap_sink_hole(info, a, n), v);
-    }
-}
 
 static Value order(Value x, int sign) {
     if (!x->vector)
@@ -657,17 +676,30 @@ static Value order(Value x, int sign) {
             return items(x->map.key, order(x->map.value, sign));
         else
             error(error_type);
-    struct sort_info info =
-        { x->items, types[x->type].size, types_conv[x->type].compare, sign };
 
     MValue r = create_items(type_index, x->count);
-    heap_sort(&info, r->indexes, x->count);
+
+#ifndef NSHORTCUT
+    if (x->type == type_index && sign > 0)
+        index_asc_heap_sort(x->indexes, r->indexes, x->count);
+    else
+#endif
+    {
+        struct sort_info info = { x->items, types[x->type].size,
+                                  types_conv[x->type].compare, sign };
+        heap_sort(&info, r->indexes, x->count);
+    }
     return r;
 }
 
 Value order_asc( Value x) { return order(x,  1); }
 Value order_desc(Value x) { return order(x, -1); }
 
+
+// index values, ascending sort
+#define index_asc_value_heap_element(info, i) (info[i])
+#define index_asc_value_sort_less(info, i, j) ((i) < (j))
+HEAP(index_asc_value_, const index*)
 
 Value unique(Value x) {
     if (!x->vector)
@@ -677,16 +709,39 @@ Value unique(Value x) {
     size_t size = types[x->type].size;
 
     MValue r = create_items(type_index, 0);
+
+    // insertion sort that discards duplicate values
+    index n = 0;
     for (index i = 0; i < x->count; i++) {
-        index n = r->count;
-        for (index j = 0; j < n; j++)
-            if (!compare(x->items + size * r->indexes[j], x->items + size * i))
+        const char* item = x->items + size * i;
+
+        // binary search to find insertion point
+        index j = 0;
+        for (index m = n; m;) {
+            index k = m / 2;
+            int c = compare(item, x->items + size * r->indexes[j+k]);
+            if (!c)
                 goto next;
-        push_index(&r, i);
-        // length checking is actually unnecessary since r is not longer than x
+            if (c < 0)
+                m = k;
+            else {
+                j += k+1;
+                m -= k+1;
+            }
+        }
+
+        // length checking is unnecessary since r is not longer than x
+        resize(&r, ++n);
+        for (index k = n-1; k > j; k--)
+            r->indexes[k] = r->indexes[k-1];
+        r->indexes[j] = i;
     next:;
     }
-    return r; // mixed cannot be strengthened
+
+    // finally sort the indexes into proper order
+    index_asc_value_heap_sort(r->indexes, r->indexes, r->count);
+
+    return r;
 }
 
 
