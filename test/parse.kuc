@@ -1,0 +1,25 @@
+test:{'`failed}/':(~:)@;
+
+# parse
+test parse[,"+"]    ~ ,(+);
+test parse[,"a"]    ~ `a;
+test parse["+ -"]   ~ (';+:;-);
+test parse["+ b"]   ~ (+:;`b);
+test parse["a -"]   ~ (-;`a);
+test parse["a b"]   ~ 1_(::;`a;`b);
+test parse["+ - *"] ~ (';+:;(';-:;*));
+test parse["+ - c"] ~ (+:;(-:;`c));
+test parse["+ b *"] ~ (';+:;(*;`b));
+test parse["+ b c"] ~ (+:;1_(::;`b;`c));
+test parse["a - *"] ~ (';(-;`a);*);
+test parse["a - c"] ~ (-;`a;`c);
+test parse["a b *"] ~ (';`a;(*;`b));
+test parse["a b c"] ~ (`a;1_(::;`b;`c));
+
+test parse["x-1"]   ~ (-;`x;1);
+test parse["x -1"]  ~ (`x;-1);
+test parse["_-1+x"] ~ (_:;(+;-1;`x));
+
+test parse["{[p]-1}"] ~ ("{";,`p;-1);
+
+show `passed;

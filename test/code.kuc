@@ -1,0 +1,13 @@
+test:{'`failed}/':(~:)@;
+
+test 18 ~   a+:b:12+a:3;
+test 18 ~ .{a+:b:12+a:3};
+test (5;6j) ~ .{a[1]:a:5,6j};
+test (6;7j) ~ .{a[1]:1+a:5,6j};
+test (5;6j) ~ .{a::5,6j;a[1]:a};
+test 1 ~ .{a[a:()]:1};
+
+{$[1;x+1;x]};     # assert: not all temps freed
+{1+$[1;x+1;x+1]}; # assert: free temp not in use
+
+show `passed;

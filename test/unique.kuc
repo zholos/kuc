@@ -1,0 +1,18 @@
+test:{'`failed}/':(~:)@;
+
+n:1 2 3 5 10 100 1000 10000 100000;
+r:_(*n)%n;
+
+show@{(!x),'.x}@,'/
+{[n;r]
+    t:{[a]
+        collect[];
+        t:time{?'a};
+        test@{(y~y@<y)&(x y)~!=x}'[a;t`value];
+        t`user
+    };
+    `n`asc`desc`const`random`few!n,t'(r#,!n;r#,|!n;r#,n#42;
+                                      {n{?1000000000}\0}'r#0;{n{?10}\0}'r#0)
+}'[n;r];
+
+show `passed;

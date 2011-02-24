@@ -1,0 +1,372 @@
+test:{'`failed}/':(~:)@;
+error:(')[;();::];
+
+# ::
+test 5 ~ (::) 5;
+
+# :
+test 6 ~ (:)[5;6];
+test 7 ~ (:)[5;6;7];
+
+# @:
+test 0 = @();
+test 0 > @5;
+test 0 < @5 6;
+test 0 < @`a`b!5 6;
+
+# ,:
+test {(0<@x) & (1=#x) & 5~*x    }@ ,5;
+test {(0=@x) & (1=#x) & 5 6~*x  }@ ,5 6;
+test {(0=@x) & (1=#x) & `a`b~!*x}@ ,`a`b!5 6;
+
+# ,
+test (`a`b`c!5 6 7) ~ (`a`b!5 6),(,`c)!,7;
+test 5 6       ~ 5,6;
+test 5 6 7     ~ 5 6,7;
+test 5 6 7     ~ 5,6 7;
+test 5 6 7 8 9 ~ 5 6 7,8 9;
+test (,5)      ~ 5,();
+test (,5)      ~ (),5;
+test 5 6       ~ 5 6,();
+test 5 6       ~ (),5 6;
+test (5;6j)        ~ 5,6j;
+test (5;6;7j)      ~ 5 6,7j;
+test (5;6j;7j)     ~ 5,6 7j;
+test (5;6;7;8j;9j) ~ 5 6 7,8 9j;
+test (+;-) ~ (+),(-);
+test (`a`b!5 6;7) ~ (`a`b!5 6),7;
+test (5;`b`c!6 7) ~ 5, `b`c! 6 7;
+
+test 5 6 7                 ~ ,[5;6;7];
+test 5 6 7 8 9 10 11 12 13 ~ ,[5 6;7 8 9;10 11 12 13];
+test 5 6 7 8               ~ ,[5 6;7;8];
+test 5 6 7 8               ~ ,[5;6 7;,8];
+test 5 6 7 8 9             ~ ,[5;6;7;8 9];
+test (5;6j;7)     ~ ,[5;6j;7];
+test (5;6j;7j;8)  ~ ,[5;6 7j;8];
+test (1b;5;6;7j) ~ ,[1b;5;,6;7j];
+test 5 6 ~ ,[5;0#0j;6];
+test 5 6 ~ ,[0#0j;5;6];
+test ()  ~ ,[0#0;0#0;0#0j];
+test (`a`b`c`d`e`f!5 6 7 8 9 10) ~ ,[(`a`b`c!5 6 7);`d`e!8 9;(,`f)!,10];
+
+# ,/
+test 5   ~ ,/5;
+test 5 6 ~ ,/5 6;
+test ()  ~ ,/();
+test (5;6j) ~ ,/5,6j;
+test (1b;5;6j) ~ ,/1b,5,6j;
+
+test (1b;5;6j) ~ ,/[1b;5,6j];
+
+# #:
+test 5 ~#6 7 8 9 10;
+test 5 ~#`a`b`c`d`e!6 7 8 9 10;
+test 1 ~#5;
+
+# #
+test (`a`b!5 6) ~ 2#`a`b`c!5 6 7;
+test `type   ~ error { `#1};
+test `length ~ error {0W#1};
+test `length ~ error {0N#1};
+test 5 6 ~ 2#5 6 7;
+test 5 6 7 5 ~ 4#5 6 7;
+test 5 6 7 5 6 7 5 6 7 ~ 9#5 6 7;
+test 6 7 ~ -2#5 6 7;
+test 7 5 6 7 ~ -4#5 6 7;
+test 5 6 7 5 6 7 5 6 7 ~ -9#5 6 7;
+test 5 5 5 ~ 3#5;
+test ({5};{5};{5}) ~ 3#{5};
+
+# _
+test (`b`c!6 7) ~ 1_`a`b`c!5 6 7;
+test (`a`c!5 7) ~ (`a`b`c!5 6 7)_`b;
+test `type  ~ error {5_6};
+test `type  ~ error {5 6 7_`};
+test `index ~ error {5 6 7_-1};
+test `index ~ error {5 6 7_3};
+test 5 6 8 9 10  ~ 5 6 7 8 9 10_2;
+test () ~ (0#0)_5 6 7;
+test `type  ~ error {(0;`)_5 6 7};
+test `index ~ error {(,-1)_5 6 7};
+test `index ~ error {2 -1_5 6 7};
+test `length ~ error {2 1_5 6 7};
+test `length ~ error {10 12 11_5 6 7};
+test    (,7 8 9)     ~ ( ,2)_5 6 7 8 9;
+test (,0#0)          ~ (,10)_5 6 7;
+test (5 6;7 8 9)     ~ 0 2_5 6 7 8 9;
+test ( ,6;7 8 9;0#0) ~ 1 2 10_5 6 7 8 9;
+test 5 6 7 ~  0_5 6 7;
+test 7 8 9 ~  2_5 6 7 8 9;
+test 5 6 7 ~ -2_5 6 7 8 9;
+test (0#0) ~  10_5 6 7;
+test (0#0) ~ -10_5 6 7;
+
+# +:
+test `type ~ error {+5};
+test `type ~ error {+5 6};
+test () ~ +();
+test (5 7;6 7) ~ +(5 6;7);
+test (5 6;5 7) ~ +(5;6 7);
+test (5 7;6 8) ~ +(5 6;7 8);
+test `shape ~ error {+(,5;6 7)};
+test `type  ~ error {+(5;6j)};
+test (5 8 9;6 8 10;7 8 11) ~ +(5 6 7;8;9 10 11);
+test ((5 6;9;10;14);(+;9;11;15);(7;9;12j;16);8 9 13 17) ~
+     +((5 6;+;7;8);9;10 11,12j,13;14 15 16 17);
+
+# *: and *|:
+test 7  ~ * 5 6 7;
+test 5  ~ *|5 6 7;
+test 7  ~ * `a`b`c!5 6 7;
+test 5  ~ *|`a`b`c!5 6 7;
+test 5  ~ * 5;
+test 5  ~ *|5;
+test () ~ * ();
+test () ~ *|();
+test 0N ~ * 0#0;
+test 0N ~ *|0#0;
+
+# |:
+test 5      ~ |5;
+test 7 6 5  ~ |5 6 7;
+test (6j;5) ~ |5,6j;
+
+# .
+test `type ~ error {5 6 . 1};
+test 5 6 ~ 5 6 . ();
+test 6 ~ 5 6 7 8 . ,1;
+test 11 ~ +[5] . ,6;
+test 11 ~ (5 6 7 8;9 10 11) . 1 2;
+test 11 ~ (+) . 5 6;
+test 7 ~ (`a`b`c!(5;6 7;8);9) . 0b,`b,1;
+test 18 ~ {x+y+z} . 5 6 7;
+test 18 ~ (+)     . 5 6 7;
+test 11 ~ ((-) . (::;-6)) 5;
+test 11 ~ ((-) . (5;::)) -6;
+test 18 ~ ({x-y-z} . (::;-6;::))[5;7];
+
+# .:
+test 5 6 ~ .`a`b!5 6;
+test 5      ~ .{5};
+test (::)   ~ .{x};
+test (::;5) ~ .{x,y}[;5];
+test (::)   ~ .(')[{x};{x}];
+test (::)   ~ .(::);
+test 1b     ~ ..(~);
+test (::)   ~ .{x}/;
+test 11 ~ .(+;5;6);
+test 11 ~ ."5+6";
+test `todo ~ error {. 5 6};
+test `todo ~ error {. 5};
+
+# !
+test `type   ~ error {`a`b!5};
+test `length ~ error {`a`b!,5};
+test {(`a`b~!x)&(5 6~.x)&(2=#x)&0<@x} `a`b!5 6;
+test 2 0 1 2 0 ~ 3!5 6 7 8 9;
+
+# !:
+test `a`b ~ !`a`b!5 6;
+test `type ~ error {!`,5};
+test `type ~ error {!5,`};
+test `index ~ error {!-1 5};
+test `index ~ error {!5 -1};
+test `length ~ error {!7 5};
+test `length ~ error {!0W 0};
+test `length ~ error {!0 0W};
+test 5 6 7 ~ !5 8;
+test 5 6 7 8 9 ~ !5,10j;
+test `type ~ error {!5 6 7};
+test `type   ~ error {!`};
+test `length ~ error {!0W};
+test `length ~ error {!0Wj};
+test (0#0)     ~ !0;
+test 0 1 2 3 4 ~ !5;
+test 0 1 2     ~ !3j;
+test (,,0) ~ !-1;
+test (0 1 2;0 2 1;1 0 2;1 2 0;2 0 1;2 1 0) ~ !-3;
+test (*/1+!5) ~#?!-5;
+
+# &:
+test `a`c ~ &`a`b`c!101b;
+test `type ~ error {&0};
+test (0#0) ~ &00000b;
+test 1 4   ~ &01001b;
+test `length ~ error {&5 -6};
+test `length ~ error {&(0W-1),5};
+test 1 1 4 4 4 4 4 ~ &0 2 0 0 5;
+test 1 1 4 4 4 4 4 ~ &(0;2j;0b;0b;5;0j);
+test `type ~ error {&(0;())};
+
+# =:
+test (5 6!(`a`c;,`b)) ~ =`a`b`c!5 6 5;
+test `type ~ error {=5};
+test (7 5 8 6!(0 4;,1;,2;,3)) ~ =7 5 8 6 7;
+
+# <: and >:
+test `a`c`b ~ <`a`b`c!5 7 6;
+test `b`c`a ~ >`a`b`c!5 7 6;
+test `type ~ error {<5};
+test `type ~ error {>5};
+test 1 3 0 4 2 ~ <7 5 8 6 7;
+test 1 3 0 4 2 ~ <"cadbc";
+test 2 0 4 3 1 ~ >7 5 8 6 7;
+test 2 0 4 3 1 ~ >"cadbc";
+
+# ?:
+test (@5) = @?5;
+test 0 1 2 ~ ?5 6 7;
+test 0 2   ~ ?7 7 5 7;
+test (,0)  ~ ?5 5 5;
+test 0 1 3 ~ ?(1b;5;5;::);
+
+# & and |
+test 5j ~ 6  &5j;
+test 1b ~ 1b &5;
+test 6  ~ 6  |5j;
+test 5  ~ 1b |5;
+test `length ~ error {5 6|,7};
+test `length ~ error {5 6&,7};
+test (5j;7) ~ (5j;7)&(6;7j);
+test (6;7j) ~ (5j;7)|(6;7j);
+test (5j;6) ~ (5j;7)&6;
+test 6 7    ~ (5j;7)|6;
+test 5 7    ~ (5j;7)&5 8;
+test (5j;8) ~ (5j;7)|5 8;
+test 6 5    ~ 6  &(7j;5);
+test (7j;6) ~ 6  |(7j;5);
+test (5j;5) ~ 6 8&(5j;5);
+test 6 8    ~ 6 8|(5j;5);
+test 5 6    ~ 5 6&7 8j;
+test 7 8j   ~ 5 6|7 8j;
+test (5;7j) ~ 5 8&6 7j;
+test (6j;8) ~ 5 8|6 7j;
+test 5 6 7  ~ 5 9 7&8 6 10;
+test 8 9 10 ~ 5 9 7|8 6 10;
+test 6 7 5  ~ 6 9 5&7;
+test 8 7 9  ~ 8 5 9|7;
+test 7 7 5  ~ 7&8 9 5;
+test 7 7 9  ~ 7|6 5 9;
+
+# ^
+test 6 ~ 5^6;
+test 5 ~ 5^0N;
+test 6 ~ 0N^6;
+test `type   ~ error {5 6^7};
+test `length ~ error {5 6^,7};
+test 7 5     ~ 7^(::;5);
+test (`;5j)  ~ `^(0N;5j);
+test 5 6     ~ 7 6^(5;8b);
+test (1b;5)  ~ 10b^(`;5);
+test 7 6     ~ (5;8b)^7 6;
+test (1b;5)  ~ (`;5)^18b;
+test (8b;8j) ~ (8b;`)^(`;8j);
+test `a`b    ~ (`a;5)^(::;`b);
+test (7;6j)  ~ 5 6j^7 0N;
+test 9 10 11 ~ 5^9 10 11;
+test 9 6 11  ~ 6^9 0N 11;
+test 7 10 7  ~ 7^0N 10 0N;
+
+# ^:
+test (`a`b`c!010b) ~ ^`a`b`c!5 0N 7;
+test 0b ~ ^5;
+test 1b ~ ^(::);
+test 10b      ~ ^(8b;+);
+test (01b;1b) ~ ^(5 0N;0N);
+test 01011b   ~ ^6 0N 7 0N 0N;
+
+# ?
+test 0 ~ (5;6 7)?5;
+test 1 ~ (5;6 7)?6 7;
+test 2 ~ (5;6 7)?5 6;
+test `type ~ error {5 6?,7j};
+#test 2 4 0 ~ 5 5 6 7?6 8 5;
+
+# ~
+test 1b ~ 5~5;
+test 0b ~ 5~5j;
+test 0b ~ 5~6 7;
+test 1b ~ {5}~{5};
+test 0b ~ {5}~{6};
+
+# ()
+test 0 = @(5 6;7);
+test 0 = @(5;6 7);
+test 0 = @(5 6;,7);
+test 0 = @(5;6j);
+test 0 = @(+;-);
+test 5 6 ~ (5;6);
+
+test 0 = @(5 6;7 8);
+test 0 = @(+;-;*);
+test 0 = @(5;6 7;8);
+test 0 = @(5;6j;7);
+test 5 6 7j = 0j+(5;6j;7);
+test 5 6 7 = (5;6;7);
+
+# '
+test {(5~x[17;3])&(@x)=@(:)}  ('[_:;%]);
+test {(5~x 5 6 7)&(@x)=@(::)} ('[*:;|:]);
+test {(101b~x[5 6 7;6])&(@x)=@(:)} ('[~:;=]);
+test {(011b~x[5 6 7;6])&(@x)=@(:)} ('[~:;<]);
+test {(110b~x[5 6 7;6])&(@x)=@(:)} ('[~:;>]);
+test {(4~x 5)             &(@x)=@({x}\)} ('[#:;{0|x-2}\]);
+test {(5~x[1;!5])&(4~x@!5)&(@x)=@({y}\)} ('[#:;{y}\]);
+test {(5~x[1;!5;6])       &(@x)=@({z}\)} ('[#:;{z}\]);
+test {~|/(@x)=@'(:;::;{}\)} ('[{};{}]);
+
+test {(5~x 3)&(@x)=@(0:)} ('[_:;17%]);
+test (@('[{};{}])) = @('[_:;17:]);
+test {(0~x 5)&(@x)=@('[{};{}])} ('[*:;'[|:;!:]]); # need more introspection
+test (@('[{};{}])) = @('[_:;'[::;!:]]);           # need more introspection
+
+test {(5~x 1)&(@x)=@({}[;0])} ('[#:;{y}\[;!5]]);
+test (@('[{};{}])) = @('[#:;{y}[;!5]]);
+test {(4~x -5)&(@('[{};{}]))} ('[#:;'[{0|x-2}\;-:]]); # need more introspection
+test (@('[{};{}])) = @('[#:;'[{0|x-2};-:]]);          # need more introspection
+
+# $
+test `type ~ error {``$5};
+test `type ~ error {"j"$5};
+test 1 5j ~ `long$(1b;5);
+test 10b ~ `bool$5 0;
+test 1b  ~ `bool$7;
+test 0x0506 ~ `byte$5 6;
+test 0x07   ~ `byte$7;
+test 5 6 ~ `int$5 6j;
+test 7   ~ `int$7j;
+test 5 6j ~ `long$0x0506;
+test 7j   ~ `long$0x07;
+test 5 6. ~ `float$5 6;
+test 7.   ~ `float$7;
+test `todo ~ error {`char$5};
+test `abc ~ `name$"abc";
+test `abc ~     `$"abc";
+test `type ~ error {`$"x"};
+test `type ~ error {`$5 6};
+test `type ~ error {`$"a\0c"};
+test `type ~ error {`abc$5};
+test show   ~  `verb$ parse@*"$"\:repr show;
+test (@(:)) = @`verb$-parse@*"$"\:repr show;
+test `todo ~ error {`adverb$({}')};
+
+# ':
+test `abc ~ error {'`abc};
+
+# '[f;x;e]
+test `rank ~ error {'[1;2;3;4]};
+test 6 8      ~ ('[1 2+;5 6;  `,]);
+test ``length ~ ('[1 2+;5 6 7;`,]);
+
+# collect
+test (@(::)) = @collect;
+
+# opcode-only verbs
+test show ~ .{show};
+test 5    ~ ([.{abc::5};abc]);
+test `type ~ error {do[5 6]};
+test 32j   ~ {i:7;do[x;i+:x];i} 5j;
+test 11 9 7 ~ .{(.f;.f;.f:.{i:5;{i+:2}})};
+
+show `passed;

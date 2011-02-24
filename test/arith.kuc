@@ -1,0 +1,30 @@
+test:{'`failed}/':(~:)@;
+error:(')[;();::];
+
+# +
+test 0N 0N 0N 12 15  ~ 0N 0N 5 5 6  + 0N 5 0N 7 9;
+test 0N 0N 0N 12 15j ~ 0N 0N 5 5 6j + 0N 5 0N 7 9j;
+test 0n 0n 0n 12 15  ~ 0n 0n 5 5 6  + 0n 5 0n 7 9;
+test `length ~ error {5 6 + ,7};
+test  12 15j  ~ (5; 6j) + (7j;9);
+test (12;15j) ~  5  6   + (7; 9j);
+test  12 15j  ~ (5j;6)  +  7  9j;
+test  (8;9j) ~ (5; 6j) + 3;
+test   8 9j  ~ 3j + (5; 6j);
+test (`a`b!12 15) ~ 5 6 + `a`b!7 9;
+test (`a`b!8 9)   ~ 3   + `a`b!5 6;
+test (`a`b!12 15) ~ (`a`b!5 6) + 7 9;
+test (`a`b!8 9)   ~ (`a`b!5 6) + 3;
+test (`a`b!12 15) ~ (`a`b!5 6) + `a`b!7 9;
+test (`a`b!5 22)  ~ (`a`b!5 6) + `b`b!7 9;
+test (`a`c`b!5 22 8) ~ (`a`c!5 6) + `c`b`c!7 8 9;
+test `type ~ error {`a+"b"};
+test 5 7 0N ~ 5 6 7 + 018b;
+test 12 15  ~ 0x0506 + 7 9;
+test 12 15j ~ 5 6j + 0x0709;
+test 12 15j ~ 5 6  + 7 9j;
+test 11 12  ~ 5  + 6 7;
+test 7 8    ~ 1b + 6 7;
+test 11 12  ~ 5  + 0x0607;
+
+show `passed;
